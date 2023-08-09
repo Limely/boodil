@@ -115,7 +115,7 @@ class Index extends BoodilpayAbstract {
             if (!$order) {
                 throw new \Exception('Unable to create order');
             }
-            //add order ID in if attempt was successful
+            //add order ID to record if attempt was successful
             $transaction->setOrderId($order->getId());
             $transaction->save();
             $quoteId = $this->getQuote()->getId();
