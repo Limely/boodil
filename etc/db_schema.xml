@@ -4,7 +4,7 @@
     <table name="boodil_payment_transaction" resource="default" engine="innodb"
            comment="Boodil Transactions">
         <column xsi:type="int" name="entity_id" padding="11" unsigned="false" identity="true" comment="Entity ID" />
-        <column xsi:type="int" name="order_id" nullable="false" unsigned="true" identity="false" comment="Order Id"/>
+        <column xsi:type="int" name="order_id" nullable="true" unsigned="true" identity="false" comment="Order Id"/>
         <column xsi:type="varchar" name="uuid" nullable="false" length="150" comment="UUID"/>
         <column xsi:type="varchar" name="description" nullable="false" length="150" comment="Description"/>
         <column xsi:type="varchar" name="status" nullable="true" length="32" comment="Status"/>
@@ -16,8 +16,8 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id"/>
         </constraint>
-        <!--<constraint xsi:type="foreign" referenceId="BOODIL_PAYMENT_TRANSACTION_ORDER_ID" table="boodil_payment_transaction"
-                    column="order_id" referenceTable="sales_order" referenceColumn="entity_id"
-                    onDelete="SET NULL"/>-->
+        <constraint xsi:type="unique" referenceId="BOODIL_UUID">
+            <column name="uuid" />
+        </constraint>
     </table>
 </schema>
