@@ -113,13 +113,14 @@ class Boodil
     public function insertDataIntoTransactions($results)
     {
         $transaction = $this->transactionsFactory->create();
-        $transaction->setOrderId($this->_order->getId());
+        $transaction->setOrderId(null);
         $transaction->setUuid($results['uuid'] ?? '');
         $transaction->setDescription($results['result']['description'] ?? '');
         $transaction->setStatus($results['result']['status'] ?? '');
         $transaction->setStatusCode($results['result']['statusCode'] ?? '');
         $transaction->setPoints($results['result']['points'] ?? '');
         $transaction->save();
+        return $transaction;        
     }
 
     /**
