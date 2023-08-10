@@ -10,7 +10,7 @@ class Index extends BoodilpayAbstract {
      * @return bool|void
      */
     public function execute() {
-        if (!$this->getRequest()->getParam('uuid') || ($this->getRequest()->getParam('uuid') == $this->getCheckoutSession()->getOrderUuid())) {
+        if (!$this->getRequest()->getParam('uuid')) {
             return;
         }
         if ((!$this->getRequest()->getParam('consent') && $this->getRequest()->getParam('error') == 'access_denied') || (!$this->getRequest()->getParam('consent') && !$this->getQuote()->getId())) {            
@@ -18,6 +18,7 @@ class Index extends BoodilpayAbstract {
             $this->_redirect('checkout/cart');
             return;
         }
+        
         try {
             $completeStatusCode = [
                 'ACSC',
@@ -35,15 +36,18 @@ class Index extends BoodilpayAbstract {
                 'PART',
                 'PATC'
             ];
-            if ($this->getRequest()->getParam('uuid') && $this->getRequest()->getParam('mobile') == true) {
+            if ($this->getRequest()->getParam('mobile')) {
                 $results = $this->getTransactionApi($this->getRequest()->getParam('uuid'));
             } else {
-                $results = $this->createPaymentsApi();
+                $results = $this->createPaymentsApi();                        
             }
-            if (isset($results['result']['statusCode']) && in_array($results['result']['statusCode'], $completeStatusCode)) {
-                if (!$this->checkActiveQuote($results)) {
-                    $this->_redirect('boodil/payment/success');
-                    return;
+            if (isset($results['result']['statusCode']) && in_array($results['result']['statusCode'], $completeStatusCode)) {                
+                if($this->getRequest()->getParam('mobile')) {
+                    $this->getCheckoutSession()->clearQuote();                    
+                    return $this->_redirect('boodil/payment/success');
+                }                 
+                if ($this->getActiveQuote($results)->getId() === '') {
+                    return $this->_redirect('boodil/payment/success');                    
                 }
                 try {
                     $this->_success($results);
@@ -53,9 +57,12 @@ class Index extends BoodilpayAbstract {
                     $this->_redirect('checkout/cart');
                 }
             } elseif (isset($results['result']['statusCode']) && in_array($results['result']['statusCode'], $pendingStatusCode)) {
-                if (!$this->checkActiveQuote($results)) {
-                    $this->_redirect('boodil/payment/success');
-                    return;
+                if($this->getRequest()->getParam('mobile')) {
+                    $this->getCheckoutSession()->clearQuote();                    
+                    return $this->_redirect('boodil/payment/success');         
+                }                
+                if ($this->getActiveQuote($results)->getId() === '') {
+                    return $this->_redirect('boodil/payment/success');                    
                 }
                 try {
                     $this->registry->register('status', 'PDNG');
@@ -101,19 +108,17 @@ class Index extends BoodilpayAbstract {
      * 
      * @param array $results
      */
-    protected function checkActiveQuote($results) {                                
-        $quote = $this->getQuote();
-        if(!$quote->getId()) {
-            return null;
-        }
-        try {
-            $this->insertDataIntoTransactions($results);
-        } catch(\Exception $e) {
-            file_put_contents(__DIR__ . '/log.txt', $e->getMessage() . PHP_EOL, FILE_APPEND);
-            //go back to original browser, transaction already created
-            return null;
-        }
-        return $quote;                
+    protected function getActiveQuote($results) {                                
+        $current = $this->getQuote();
+        if (!empty($results['customParameters']['c1']) && $current->getId() != $results['customParameters']['c1']) {
+            $quote = $this->quoteRepository->get($results['customParameters']['c1']);
+            $quote->setIsActive(1);
+            $this->quoteRepository->save($quote);
+            $this->checkoutSession->replaceQuote($quote);
+            $this->setQuote($quote);
+            return $quote;
+        }                
+        return $current;        
     }
     
     /**
@@ -136,7 +141,13 @@ class Index extends BoodilpayAbstract {
      * @throws \Magento\Framework\Exception\LocalizedException
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
-    protected function _success($results) {                   
+    protected function _success($results) {            
+        try {
+            $this->insertDataIntoTransactions($results);
+        } catch(\Exception $e) {
+            file_put_contents(__DIR__.'/error.txt', var_export($results, true), FILE_APPEND);
+            throw $e;
+        }        
         try {           
             $this->_initService();     
             $this->_service->placeOrder();            

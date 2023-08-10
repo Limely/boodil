@@ -13,6 +13,7 @@ use Magento\Framework\UrlInterface;
 use Boodil\Payment\Model\Service\BoodilFactory;
 use Boodil\Payment\Logger\Logger;
 use Boodil\Payment\Model\TransactionsFactory;
+use Magento\Quote\Model\QuoteRepository;
 
 abstract class BoodilpayAbstract extends Action
 {
@@ -75,7 +76,14 @@ abstract class BoodilpayAbstract extends Action
      * @var TransactionsFactory
      */
     protected $transactionsFactory;
-
+    
+    /**
+     * Quote repository
+     * 
+     * @var QuoteRepository
+     */
+    protected $quoteRepository;
+    
     /**
      * BoodilpayAbstract constructor.
      * @param Context $context
@@ -89,6 +97,7 @@ abstract class BoodilpayAbstract extends Action
      * @param Logger $logger
      * @param CheckoutSession $checkoutSession
      * @param TransactionsFactory $transactionsFactory
+     * @param QuoteRepository $quoteRepository
      */
     public function __construct(
         Context $context,
@@ -101,7 +110,8 @@ abstract class BoodilpayAbstract extends Action
         Json $json,
         Logger $logger,
         CheckoutSession $checkoutSession,
-        TransactionsFactory $transactionsFactory
+        TransactionsFactory $transactionsFactory,
+        QuoteRepository $quoteRepository
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->quoteFactory = $quoteFactory;
@@ -113,6 +123,7 @@ abstract class BoodilpayAbstract extends Action
         $this->registry = $registry;
         $this->json = $json;
         $this->transactionsFactory = $transactionsFactory;
+        $this->quoteRepository = $quoteRepository;
         parent::__construct($context);
     }
 
@@ -254,6 +265,15 @@ abstract class BoodilpayAbstract extends Action
             $this->quote = $this->getCheckoutSession()->getQuote();
         }
         return $this->quote;
+    }
+    
+    /**
+     * Set quote
+     * 
+     * @param \Magento\Quote\Model\Quote $quote
+     */
+    protected function setQuote($quote) {
+        $this->quote = $quote;
     }
 
     /**
