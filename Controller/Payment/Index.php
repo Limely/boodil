@@ -44,8 +44,14 @@ class Index extends BoodilpayAbstract {
             if (isset($results['result']['statusCode']) && in_array($results['result']['statusCode'], $completeStatusCode)) {                
                 if($this->getRequest()->getParam('mobile')) {
                     $this->getCheckoutSession()->clearQuote();                    
+                    return $this->_redirect('boodil/payment/success', array('_query' => array('mobile' => true)));
+                }                 
+                try {
+                    $this->insertDataIntoTransactions($results);
+                } catch(\Exception $e) {                    
                     return $this->_redirect('boodil/payment/success');
-                }                                 
+                }                                
+                $this->setActiveQuote($results);
                 try {
                     $this->_success($results);
                     return $this->_redirect($this->getSuccessUrl());
@@ -56,8 +62,14 @@ class Index extends BoodilpayAbstract {
             } elseif (isset($results['result']['statusCode']) && in_array($results['result']['statusCode'], $pendingStatusCode)) {
                 if($this->getRequest()->getParam('mobile')) {
                     $this->getCheckoutSession()->clearQuote();                    
-                    return $this->_redirect('boodil/payment/success');         
+                    return $this->_redirect('boodil/payment/success', array('_query' => array('mobile' => true)));
+                }     
+                try {
+                    $this->insertDataIntoTransactions($results);
+                } catch(\Exception $e) {                    
+                    return $this->_redirect('boodil/payment/success');
                 }                
+                $this->setActiveQuote($results);
                 try {
                     $this->registry->register('status', 'PDNG');
                     $this->_success($results);
@@ -102,7 +114,7 @@ class Index extends BoodilpayAbstract {
      * 
      * @param array $results
      */
-    protected function getActiveQuote($results) {                                
+    protected function setActiveQuote($results) {                                
         $current = $this->getQuote();
         if (!empty($results['customParameters']['c1']) && $current->getId() != $results['customParameters']['c1']) {
             $quote = $this->quoteRepository->get($results['customParameters']['c1']);
@@ -111,8 +123,7 @@ class Index extends BoodilpayAbstract {
             $this->checkoutSession->replaceQuote($quote);
             $this->setQuote($quote);
             return $quote;
-        }                
-        return $current;        
+        }                       
     }
     
     /**
@@ -135,13 +146,7 @@ class Index extends BoodilpayAbstract {
      * @throws \Magento\Framework\Exception\LocalizedException
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
-    protected function _success($results) {            
-        try {
-            $this->insertDataIntoTransactions($results);
-        } catch(\Exception $e) {
-            file_put_contents(__DIR__.'/error.txt', var_export($results, true), FILE_APPEND);
-            throw $e;
-        }        
+    protected function _success($results) {                    
         try {           
             $this->_initService();     
             $this->_service->placeOrder();            
