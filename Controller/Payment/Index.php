@@ -45,10 +45,7 @@ class Index extends BoodilpayAbstract {
                 if($this->getRequest()->getParam('mobile')) {
                     $this->getCheckoutSession()->clearQuote();                    
                     return $this->_redirect('boodil/payment/success');
-                }                 
-                if ($this->getActiveQuote($results)->getId() === '') {
-                    return $this->_redirect('boodil/payment/success');                    
-                }
+                }                                 
                 try {
                     $this->_success($results);
                     return $this->_redirect($this->getSuccessUrl());
@@ -61,9 +58,6 @@ class Index extends BoodilpayAbstract {
                     $this->getCheckoutSession()->clearQuote();                    
                     return $this->_redirect('boodil/payment/success');         
                 }                
-                if ($this->getActiveQuote($results)->getId() === '') {
-                    return $this->_redirect('boodil/payment/success');                    
-                }
                 try {
                     $this->registry->register('status', 'PDNG');
                     $this->_success($results);
