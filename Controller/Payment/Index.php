@@ -13,7 +13,7 @@ class Index extends BoodilpayAbstract {
         if (!$this->getRequest()->getParam('uuid') || ($this->getRequest()->getParam('uuid') == $this->getCheckoutSession()->getOrderUuid())) {
             return;
         }
-        if ((!$this->getRequest()->getParam('consent') && $this->getRequest()->getParam('error') == 'access_denied') || (!$this->getRequest()->getParam('consent') && !$this->getQuote()->getId())) {
+        if ((!$this->getRequest()->getParam('consent') && $this->getRequest()->getParam('error') == 'access_denied') || (!$this->getRequest()->getParam('consent') && !$this->getQuote()->getId())) {            
             $this->messageManager->addErrorMessage(__("Payment cancelled"));
             $this->_redirect('checkout/cart');
             return;
@@ -41,19 +41,19 @@ class Index extends BoodilpayAbstract {
                 $results = $this->createPaymentsApi();
             }
             if (isset($results['result']['statusCode']) && in_array($results['result']['statusCode'], $completeStatusCode)) {
-                if ($this->getQuote()->getId() == "") {
+                if (!$this->checkActiveQuote($results)) {
                     $this->_redirect('boodil/payment/success');
                     return;
                 }
                 try {
                     $this->_success($results);
                     return $this->_redirect($this->getSuccessUrl());
-                } catch (\Exception $e) {
+                } catch (\Exception $e) {                    
                     $this->messageManager->addErrorMessage(__("Unable to process order, please try again."));
                     $this->_redirect('checkout/cart');
                 }
             } elseif (isset($results['result']['statusCode']) && in_array($results['result']['statusCode'], $pendingStatusCode)) {
-                if ($this->getQuote()->getId() == "") {
+                if (!$this->checkActiveQuote($results)) {
                     $this->_redirect('boodil/payment/success');
                     return;
                 }
@@ -61,7 +61,7 @@ class Index extends BoodilpayAbstract {
                     $this->registry->register('status', 'PDNG');
                     $this->_success($results);
                     $this->_redirect($this->getSuccessUrl());
-                } catch (\Exception $e) {
+                } catch (\Exception $e) {                   
                     $this->messageManager->addErrorMessage(__("Unable to process order, please try again."));
                     $this->_redirect('checkout/cart');
                 }
@@ -95,43 +95,73 @@ class Index extends BoodilpayAbstract {
             return;
         }
     }
+    
+    /**
+     * Check active quote
+     * 
+     * @param array $results
+     */
+    protected function checkActiveQuote($results) {                                
+        $quote = $this->getQuote();
+        if(!$quote->getId()) {
+            return null;
+        }
+        try {
+            $this->insertDataIntoTransactions($results);
+        } catch(\Exception $e) {
+            file_put_contents(__DIR__ . '/log.txt', $e->getMessage() . PHP_EOL, FILE_APPEND);
+            //go back to original browser, transaction already created
+            return null;
+        }
+        return $quote;                
+    }
+    
+    /**
+     * @param $results
+     * @throws Exception
+     */
+    protected function insertDataIntoTransactions($results) {
+        $transaction = $this->transactionsFactory->create();
+        $transaction->setOrderId(null);
+        $transaction->setUuid($results['uuid'] ?? '');
+        $transaction->setDescription($results['result']['description'] ?? '');
+        $transaction->setStatus($results['result']['status'] ?? '');
+        $transaction->setStatusCode($results['result']['statusCode'] ?? '');
+        $transaction->setPoints($results['result']['points'] ?? '');
+        $transaction->save();
+        return $transaction;        
+    }    
 
     /**
      * @throws \Magento\Framework\Exception\LocalizedException
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
-    protected function _success($results) {
-        try {
-            $transaction = $this->_service->insertDataIntoTransactions($results);
-        } catch (\Exception $e) {
-            $this->logger->debug($e->getMessage());
-            //more than likely duplicate request called by mobile / qr code.
-            throw $e;
-        }
-        try {
-            $this->_initService();
-            $this->_service->placeOrder();
-            $order = $this->_service->getOrder();
+    protected function _success($results) {                   
+        try {           
+            $this->_initService();     
+            $this->_service->placeOrder();            
+            $order = $this->_service->getOrder();                      
             if (!$order) {
                 throw new \Exception('Unable to create order');
             }
             //add order ID to record if attempt was successful
+            $transaction = $this->transactionsFactory->create()->load($results['uuid'], 'uuid');                        
             $transaction->setOrderId($order->getId());
-            $transaction->save();
-            $quoteId = $this->getQuote()->getId();
-            $this->getCheckoutSession()
-                ->clearHelperData()
-                ->setLastQuoteId($quoteId)
+            $transaction->save();                                                           
+            $quoteId = $this->getQuote()->getId();            
+            $session = $this->getCheckoutSession();
+            $session->clearHelperData();
+            $session->setLastQuoteId($quoteId)
                 ->setLastSuccessQuoteId($quoteId)
                 ->setLastOrderId($order->getId())
                 ->setLastRealOrderId($order->getIncrementId())
                 ->setLastOrderStatus($order->getStatus())
                 ->setOrderUuid($results['uuid'])
                 ->unsQuoteId();
-        } catch (\Exception $e) {
+        } catch (\Exception $e) {           
             $this->logger->debug($e->getMessage());
             throw $e;
         }
     }
-
+    
 }

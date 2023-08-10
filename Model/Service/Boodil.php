@@ -82,15 +82,7 @@ class Boodil
      */
     public function placeOrder()
     {
-        $transaction = $this->transactionsFactory->create();
-        $collection = $transaction->getCollection()
-            ->addFieldToFilter('uuid', $this->request->getParam('uuid'))
-            ->getFirstItem();
-
-        if ($collection->getUuid() === $this->request->getParam('uuid')) {
-            return;
-        }
-
+        
         if ($this->getCheckoutMethod() == Onepage::METHOD_GUEST) {
             $this->prepareGuestQuote();
         }
@@ -104,23 +96,6 @@ class Boodil
         }
 
         $this->_order = $order;
-    }
-
-    /**
-     * @param $results
-     * @throws Exception
-     */
-    public function insertDataIntoTransactions($results)
-    {
-        $transaction = $this->transactionsFactory->create();
-        $transaction->setOrderId(null);
-        $transaction->setUuid($results['uuid'] ?? '');
-        $transaction->setDescription($results['result']['description'] ?? '');
-        $transaction->setStatus($results['result']['status'] ?? '');
-        $transaction->setStatusCode($results['result']['statusCode'] ?? '');
-        $transaction->setPoints($results['result']['points'] ?? '');
-        $transaction->save();
-        return $transaction;        
     }
 
     /**

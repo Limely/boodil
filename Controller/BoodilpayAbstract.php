@@ -12,6 +12,7 @@ use Magento\Quote\Model\QuoteFactory;
 use Magento\Framework\UrlInterface;
 use Boodil\Payment\Model\Service\BoodilFactory;
 use Boodil\Payment\Logger\Logger;
+use Boodil\Payment\Model\TransactionsFactory;
 
 abstract class BoodilpayAbstract extends Action
 {
@@ -69,6 +70,11 @@ abstract class BoodilpayAbstract extends Action
      * @var Json
      */
     protected $json;
+    
+    /**     
+     * @var TransactionsFactory
+     */
+    protected $transactionsFactory;
 
     /**
      * BoodilpayAbstract constructor.
@@ -82,6 +88,7 @@ abstract class BoodilpayAbstract extends Action
      * @param Json $json
      * @param Logger $logger
      * @param CheckoutSession $checkoutSession
+     * @param TransactionsFactory $transactionsFactory
      */
     public function __construct(
         Context $context,
@@ -93,7 +100,8 @@ abstract class BoodilpayAbstract extends Action
         Registry $registry,
         Json $json,
         Logger $logger,
-        CheckoutSession $checkoutSession
+        CheckoutSession $checkoutSession,
+        TransactionsFactory $transactionsFactory
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->quoteFactory = $quoteFactory;
@@ -104,6 +112,7 @@ abstract class BoodilpayAbstract extends Action
         $this->boodilService = $boodilService;
         $this->registry = $registry;
         $this->json = $json;
+        $this->transactionsFactory = $transactionsFactory;
         parent::__construct($context);
     }
 
