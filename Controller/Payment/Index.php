@@ -42,6 +42,7 @@ class Index extends BoodilpayAbstract {
                 $results = $this->createPaymentsApi();                        
             }
             if (isset($results['result']['statusCode']) && in_array($results['result']['statusCode'], $completeStatusCode)) {                
+                //@todo - in future if was qr code && not mobile
                 if($this->getRequest()->getParam('mobile')) {
                     $this->getCheckoutSession()->clearQuote();                    
                     return $this->_redirect('boodil/payment/success', array('_query' => array('mobile' => true)));
@@ -60,6 +61,7 @@ class Index extends BoodilpayAbstract {
                     $this->_redirect('checkout/cart');
                 }
             } elseif (isset($results['result']['statusCode']) && in_array($results['result']['statusCode'], $pendingStatusCode)) {
+                //@todo - in future if was qr code && not mobile
                 if($this->getRequest()->getParam('mobile')) {
                     $this->getCheckoutSession()->clearQuote();                    
                     return $this->_redirect('boodil/payment/success', array('_query' => array('mobile' => true)));
