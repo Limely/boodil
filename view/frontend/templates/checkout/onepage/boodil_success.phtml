@@ -11,3 +11,20 @@
         <p><?= __("Your transaction was completed in another window, you can see your order confirmation there."); ?></p>
     <?php endif;?>       
 </div>
+<script>
+    require([
+        'Magento_Customer/js/customer-data'
+    ], function (customerData) {
+
+        setTimeout(function () {
+            var sections = ['cart'];
+            customerData.get('cart').subscribe(function (cart) {
+                if (cart.summary_count > 0) {
+                    customerData.invalidate(sections);
+                    customerData.reload(sections, true);
+                }
+            })
+
+        }, 1)
+    });
+</script>
