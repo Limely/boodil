@@ -13,12 +13,12 @@
       - Navigate to your Magento root folder<br />
             `cd path_to_the_magento_root_directory`
       - Then run the following command<br />
-            `composer require kiwicommerceltd/boodil`<br />
+            `composer require limelyltd/boodil`<br />
       - Make sure that composer finished the installation without errors
 
  2. Command Line Installation
       - Backup your web directory and database.
-      - Download the latest installation package `Source code (zip)` from [here](https://github.com/kiwicommerceltd/boodil/releases/)
+      - Download the latest installation package `Source code (zip)` from [here](https://github.com/Limely/boodil/releases/)
       - Navigate to your Magento root folder<br />
             `cd path_to_the_magento_root_directory`<br />
       - Upload contents of the installation package to your Magento root directory
